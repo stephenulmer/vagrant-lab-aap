@@ -1,0 +1,32 @@
+- name: Setup Lab Inventory
+  hosts: automationcontroller
+  connection: local
+  gather_facts: false
+  vars:
+    inventory_hosts:
+      - node1
+      - node2
+      - node3
+  tasks:
+    - name: Lab Inventory exists
+      ansible.controller.inventory:
+        name: "Lab Inventory"
+        description: "Inventory for Vagrant-managed AAP Lab"
+        organization: "Default"
+        state: present
+        controller_host: "https://aap.shared"
+        controller_username: "admin"
+        controller_password: "{{ controller_admin_password }}"
+        validate_certs: no
+
+    - name: Host is in Lab Inventory
+      ansible.controller.host:
+        name: "{{ item }}"
+        inventory: "Lab Inventory"
+        state: present
+        enabled: true
+        controller_host: "https://aap.shared"
+        controller_username: "admin"
+        controller_password: "{{ controller_admin_password }}"
+        validate_certs: no
+      loop: "{{ inventory_hosts }}"

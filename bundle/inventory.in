@@ -1,0 +1,48 @@
+##
+## This file is generated.
+##
+## To run the installer:
+##    ansible-playbook -i inventory ansible.containerized_installer.install
+##
+
+
+${AAP_SERVER_FQDN} ansible_connection=local
+
+[automationgateway]
+${AAP_SERVER_FQDN}
+
+[automationcontroller]
+${AAP_SERVER_FQDN}
+
+[automationhub]
+${AAP_SERVER_FQDN}
+
+[automationeda]
+${AAP_SERVER_FQDN}
+
+[database]
+${AAP_SERVER_FQDN}
+
+[all:vars]
+controller_license_file="{{ lookup('env', 'PWD') }}/rh-manifest.zip"
+redis_mode=standalone
+postgresql_admin_username=postgres
+postgresql_admin_password=${AAP_ADMIN_PASSWORD}
+bundle_install=true
+bundle_dir="{{ lookup('env', 'PWD') }}/bundle"
+
+gateway_admin_password=${AAP_ADMIN_PASSWORD}
+gateway_pg_host=${AAP_SERVER_FQDN}
+gateway_pg_password=${AAP_ADMIN_PASSWORD}
+
+controller_admin_password=${AAP_ADMIN_PASSWORD}
+controller_pg_host=${AAP_SERVER_FQDN}
+controller_pg_password=${AAP_ADMIN_PASSWORD}
+
+hub_admin_password=${AAP_ADMIN_PASSWORD}
+hub_pg_host=${AAP_SERVER_FQDN}
+hub_pg_password=${AAP_ADMIN_PASSWORD}
+
+eda_admin_password=${AAP_ADMIN_PASSWORD}
+eda_pg_host=${AAP_SERVER_FQDN}
+eda_pg_password=${AAP_ADMIN_PASSWORD}
