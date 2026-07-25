@@ -1,0 +1,17 @@
+---
+server:
+  name: "aap"
+  admin_password: "redhat123"
+
+managed:
+  - name: lin1
+    group: linux
+
+  - name: lin2
+    group: linux
+
+  - name: win1
+    group: windows
+    box: "Sy3Omda/Win-SRV-2025"
+    communicator: :winrm
+    boot_timeout: 1800

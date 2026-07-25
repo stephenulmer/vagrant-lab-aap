@@ -1,57 +1,67 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-##
-## These files must be copied into the ./bundle directory.
-##
-aap_bundle = "ansible-automation-platform-containerized-setup-bundle-2.6-8-aarch64.tar.gz"
-aap_manifest = "aap-manifest.zip"
+require 'yaml'
 
-# Define the AAP server
-aap_server = { name: "aap", admin_password: "redhat123" }
+##
+## Locate and load configuration data
+##
+config_path = File.join(File.dirname(__FILE__), 'lab-config.yml')
+if File.exist?(config_path)
+  puts "Loading lab-config.yml"
+  lab = YAML.safe_load_file(config_path, permitted_classes: [Symbol])
+else
+  puts "Loading embedded YAML"
+  yaml_data = <<~YAML
+    server:
+      name: aap
 
-# Define an array of managed nodes
-managed = [
-  { name: "node1" },
-  { name: "node2" },
-  { name: "node3" }
-]
+    managed:
+      - name: managed-node
+  YAML
+  lab = YAML.safe_load(yaml_data, permitted_classes: [Symbol])
+end
+
 
 Vagrant.configure("2") do |config|
   if Vagrant.has_plugin?('vagrant-registration')
     config.registration.username = ENV['RH_USERNAME']
     config.registration.password = ENV['RH_PASSWORD']
     config.registration.auto_attach = false  # if true breaks simple content access
+    config.registration.skip =  (ENV['RH_PASSWORD'].to_s.empty? &&
+                                 ENV['RH_PASSWORD'].to_s.empty?) ? true : false
   end
 
-  config.vm.define aap_server[:name], primary: true do |aap|
-    aap.vm.box = "slu/rhel-10.2-ansible"
-    aap.vm.hostname = aap_server[:name]
+  lab_server_name = lab.dig('server', 'name') || "aap"
+  lab_server_box = lab.dig('server', 'box') || "slu/rhel-10.2-ansible"
+  lab_server_bundle = lab.dig('server', 'bundle') || "ansible-automation-platform-containerized-setup-bundle-2.6-8-aarch64.tar.gz"
+  lab_server_manifest = lab.dig('server', 'manifest') || "rh-manifest.zip"
+  lab_server_admin_password = lab.dig('server', :admin_password) || "redhat123"
+
+  config.vm.define lab_server_name do |aap|
+    aap.vm.box = lab_server_box
+    aap.vm.hostname = lab_server_name
     aap.vm.synced_folder ".", "/vagrant"
 
     aap.vm.provider "parallels" do |prl|
-      prl.name = aap_server[:name]
+      prl.name = lab_server_name
       prl.update_guest_tools = false
       prl.memory = "16384"
       prl.cpus = 4
     end
-
-    # aap.vm.provision "Generate SSH Key", type: "shell" do |p|
-    #   p.privileged = false
-    #   p.inline = "ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N '' <<< 'n'"
-    # end
 
     aap.vm.provision "Extract AAP Installer", type: "shell" do |p|
       p.privileged = false
       p.inline = <<-SHELL
         mkdir aap-installer
         tar -xzvf /vagrant/bundle/${AAP_BUNDLE} -C aap-installer --strip-components=1
-        cp /vagrant/bundle/rh-manifest.zip aap-installer
+        cp /vagrant/bundle/${AAP_MANIFEST} aap-installer
         envsubst < /vagrant/bundle/inventory.in > aap-installer/inventory
       SHELL
-      p.env = { "AAP_BUNDLE" => aap_bundle,
-                "AAP_SERVER_FQDN" => aap_server[:name] + '.shared',
-                "AAP_ADMIN_PASSWORD" => aap_server[:admin_password] }
+      p.env = { "AAP_BUNDLE" => lab_server_bundle,
+                "AAP_MANIFEST" => lab_server_manifest,
+                "AAP_SERVER_FQDN" => lab_server_name + '.shared',
+                "AAP_ADMIN_PASSWORD" => lab_server_admin_password }
     end
 
     aap.vm.provision "Install AAP", type: "shell" do |p|
@@ -66,14 +76,24 @@ Vagrant.configure("2") do |config|
   end
 
   # Generate managed VMs from data structure
-  managed.each do |server|
-    config.vm.define server[:name] do |node|
-      node.vm.box = "slu/rhel-10.2"
-      node.vm.hostname = server[:name]
+  lab_managed_vms = lab.dig('managed') || [ { "name" => "managed-node" } ]
+
+  lab_managed_vms.each do |vm|
+    managed_node_name = vm.dig('name') || "nodeX"
+    managed_node_box = vm.dig('box') || "slu/rhel-10.2"
+    managed_node_communicator = vm.dig('communicator') || :ssh
+    managed_node_boot_timeout = vm.dig('boot_timeout') || 300
+
+    config.vm.define managed_node_name do |node|
+      node.vm.box = managed_node_box
+      node.vm.hostname = managed_node_name
+      node.vm.communicator = managed_node_communicator
+      node.vm.boot_timeout = managed_node_boot_timeout
       node.vm.synced_folder ".", "/vagrant", disabled: true
+      node.registration.skip = true
       
       node.vm.provider "parallels" do |prl|
-        prl.name = server[:name]
+        prl.name = managed_node_name
         prl.update_guest_tools = false
         prl.memory = "4096"
         prl.cpus = 1
