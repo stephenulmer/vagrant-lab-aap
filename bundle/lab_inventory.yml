@@ -2,12 +2,18 @@
   hosts: automationcontroller
   connection: local
   gather_facts: false
-  vars:
-    inventory_hosts:
-      - node1
-      - node2
-      - node3
   tasks:
+    - name: Check if the variable file exists
+      ansible.builtin.stat:
+        path: "/vagrant/lab-config.yml"
+      register: config_file_status
+
+    - name: Lab configuration is loaded
+      ansible.builtin.include_vars:
+        file: "/vagrant/lab-config.yml"
+        name: lab_config
+      when: config_file_status.stat.exists
+
     - name: Lab Inventory exists
       ansible.controller.inventory:
         name: "Lab Inventory"
@@ -21,7 +27,7 @@
 
     - name: Host is in Lab Inventory
       ansible.controller.host:
-        name: "{{ item }}"
+        name: "{{ item.name }}"
         inventory: "Lab Inventory"
         state: present
         enabled: true
@@ -29,4 +35,18 @@
         controller_username: "admin"
         controller_password: "{{ controller_admin_password }}"
         validate_certs: no
-      loop: "{{ inventory_hosts }}"
+      loop: "{{ lab_config.managed | default( [ { 'name': 'managed-node' } ] ) }}"
+
+    - name: Groups from Lab Config exist
+      ansible.controller.group:
+        name: "{{ item.group }}"
+        inventory: "Lab Inventory"
+        hosts:
+          - "{{ item.name }}"
+        preserve_existing_hosts: true
+        controller_host: "https://aap.shared"
+        controller_username: "admin"
+        controller_password: "{{ controller_admin_password }}"
+        validate_certs: no
+      loop: "{{ lab_config.managed | default([]) }}"
+      when: item.group is defined
