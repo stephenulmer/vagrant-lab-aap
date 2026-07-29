@@ -12,6 +12,12 @@ managed:
 
   - name: win1
     group: windows
-    box: "Sy3Omda/Win-SRV-2025"
+    box: "slu/win11"
+    communicator: :winrm
+    boot_timeout: 1800
+
+  - name: win2
+    group: windows
+    box: "slu/win11"
     communicator: :winrm
     boot_timeout: 1800
