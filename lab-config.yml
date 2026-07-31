@@ -2,22 +2,25 @@
 server:
   name: "aap"
   admin_password: "redhat123"
+  box: "slu/rhel-10.2-ansible"
 
 managed:
   - name: lin1
     group: linux
+    box: "slu/rhel-10.2"
 
   - name: lin2
     group: linux
+    box: "slu/rhel-10.2"
 
   - name: win1
     group: windows
-    box: "slu/win11"
+    box: "slu/windows-11"
     communicator: :winrm
     boot_timeout: 1800
 
   - name: win2
     group: windows
-    box: "slu/win11"
+    box: "slu/windows-11"
     communicator: :winrm
     boot_timeout: 1800
