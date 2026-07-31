@@ -27,3 +27,11 @@ The following AAP resources are created:
 
 - a machine credential for access to the managed nodes
 - an inventory of the managed nodes
+
+## Windows Managed Nodes
+
+This is a reminder for myself that Windows nodes are usually managed with WinRM, and my own Vagrant boxes don't have certificates. One would need to add variables similar to the following for their Ansible group of windows hosts:
+
+    ansible_connection: winrm
+    ansible_port: 5985
+    ansible_winrm_transport: ntlm
