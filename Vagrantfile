@@ -4,6 +4,12 @@
 require 'yaml'
 
 ##
+## SLU Vagrant Box URL - JSON file lives at: boxurl_base + :box + ".json"
+##
+#boxurl_base = "https://boxes.ulmer.org/"  # blocked by my employer's IT department
+boxurl_base = "https://filedn.com/l5sQTlB8iglSMQibt69Jdj8/boxes/"
+
+##
 ## Locate and load configuration data
 ##
 config_path = File.join(File.dirname(__FILE__), 'lab-config.yml')
@@ -34,6 +40,7 @@ Vagrant.configure("2") do |config|
 
   lab_server_name = lab.dig('server', 'name') || "aap"
   lab_server_box = lab.dig('server', 'box') || "slu/rhel-10.2-ansible"
+  lab_server_boxurl = lab.dig('server', 'boxurl') || boxurl_base + lab_server_box + ".json"
   lab_server_bundle = lab.dig('server', 'bundle') || "ansible-automation-platform-containerized-setup-bundle-2.6-8-aarch64.tar.gz"
   lab_server_manifest = lab.dig('server', 'manifest') || "rh-manifest.zip"
   lab_server_admin_password = lab.dig('server', :admin_password) || "redhat123"
@@ -81,6 +88,7 @@ Vagrant.configure("2") do |config|
   lab_managed_vms.each do |vm|
     managed_node_name = vm.dig('name') || "nodeX"
     managed_node_box = vm.dig('box') || "slu/rhel-10.2"
+    managed_node_boxurl = lab.dig('boxurl') || boxurl_base + managed_node_box + ".json"
     managed_node_communicator = vm.dig('communicator') || :ssh
     managed_node_boot_timeout = vm.dig('boot_timeout') || 300
 
